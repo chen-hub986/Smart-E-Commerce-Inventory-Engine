@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <vector>
 #include <string>
 
@@ -43,5 +44,13 @@ struct Inventory
             }
         }
         return low_stock_items;
+    }
+
+    void sort_items_by_price()
+    {
+        std::sort(items.begin(), items.end(), [](const Product& a, const Product& b)
+        {
+            return a.price < b.price;
+        });
     }
 };
