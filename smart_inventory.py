@@ -1,5 +1,21 @@
+import csv
 import Smart_Inventory_Engine_module as sim
 
+
+def export_inventory_to_csv(inventory, filename='inventory.csv'):
+    with open(filename, 'w', newline='', encoding='utf-8-sig') as csvfile:
+        fieldnames = ['商品名稱', '價格', '庫存', '警戒數值', '總價值']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for product in inventory.items:
+            writer.writerow({
+                '商品名稱': product.name,
+                '價格': product.price,
+                '庫存': product.stock,
+                '警戒數值': product.threshold,
+                '總價值': product.price * product.stock
+            })
 
 def main():
     my_inv = sim.Inventory()
@@ -14,6 +30,7 @@ def main():
 
         if choice == '0':
             print("系統已關閉")
+            export_inventory_to_csv(my_inv)
             break
 
         if choice == '1':
