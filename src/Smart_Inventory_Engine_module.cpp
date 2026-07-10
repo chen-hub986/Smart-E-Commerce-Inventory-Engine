@@ -74,5 +74,6 @@ PYBIND11_MODULE(Smart_Inventory_Engine_module, m)
         .def("add_product", &Inventory::add_product, py::arg("product"))
         .def("calculate_total_value", &Inventory::calculate_total_value)
         .def("get_low_stock_items", &Inventory::get_low_stock_items)
-        .def("sort_items_by_price", &Inventory::sort_items_by_price);
+        .def("sort_items_by_price", &Inventory::sort_items_by_price)
+        .def_readwrite("items", &Inventory::items);
 }
