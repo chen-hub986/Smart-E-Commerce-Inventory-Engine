@@ -50,5 +50,5 @@ endif()
 
 
 # Build Python extension module from mymodule.cpp
-pybind11_add_module(Smart_Inventory_Engine_module MODULE mymodule.cpp)
+pybind11_add_module(Smart_Inventory_Engine_module MODULE Smart_Inventory_Engine_module.cpp)
 target_compile_features(Smart_Inventory_Engine_module PRIVATE cxx_std_20)
