@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 4.2)
 project(Smart_E_Commerce_Inventory_Engine LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -static-libgcc -static-libstdc++")
 
 # Executable (optional)
 add_executable(Smart_E_Commerce_Inventory_Engine
