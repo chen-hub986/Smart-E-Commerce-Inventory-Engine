@@ -24,13 +24,23 @@ def import_inventory_from_csv(inventory, filename='inventory.csv'):
 
     with open(filename, 'r', encoding='utf-8-sig') as csvfile:
         reader = csv.DictReader(csvfile)
+        row_no = 0
         for row in reader:
-            product = sim.Product()
+            row_no += 1
+            try:
+                name = row.get('商品名稱', '').strip()
+                price = int(row.get('價格', 0))
+                stock = int(row.get('庫存', 0))
+                threshold = int(row.get('警戒數值', 0))
+            except (ValueError, TypeError) as e:
+                print(f"Warning: skip invalid row {row_no} in CSV: {e}")
+                continue
 
-            product.name = row['商品名稱']
-            product.price = int(row['價格'])
-            product.stock = int(row['庫存'])
-            product.threshold = int(row['警戒數值'])
+            product = sim.Product()
+            product.name = name
+            product.price = price
+            product.stock = stock
+            product.threshold = threshold
 
             inventory.add_product(product)
 
@@ -74,19 +84,37 @@ def main():
                 print("\n請輸入數字!")
                 continue
         elif choice == '2':
-            product_name = input("輸入名稱: ")
-            my_inv.remove_product(product_name)
+            product_name = input("輸入名稱: ").strip()
+            if not product_name:
+                print("\n請輸入商品名稱。")
+                continue
+            ok = my_inv.remove_product(product_name)
+            if ok:
+                print(f"已刪除商品: {product_name}")
+            else:
+                print(f"找不到商品: {product_name}")
         elif choice == '3':
-            product_name = input("輸入名稱: ")
+            product_name = input("輸入名稱: ").strip()
+            if not product_name:
+                print("\n請輸入搜尋關鍵字。")
+                continue
             found_product = my_inv.find_products_by_name_contains(product_name)
             if found_product:
-                for product in found_product:
-                    print(f"\n商品名稱: {product.name} 價格: {product.price} 庫存: {product.stock} 警戒數值: {product.threshold}" )
+                print(f"\n找到 {len(found_product)} 筆結果：")
+                for products in found_product:
+                    print(f"\n商品名稱: {products.name} 價格: {products.price} 庫存: {products.stock} 警戒數值: {products.threshold}" )
             else:
                 print("\n找不到該商品")
         elif choice == '4':
-            product_name = input("輸入名稱: ")
-            new_stock = int(input("輸入新的庫存: "))
+            try:
+                product_name = input("輸入名稱: ").strip()
+                if not product_name:
+                    print("\n請輸入商品名稱。")
+                    continue
+                new_stock = int(input("輸入新的庫存: ").strip())
+            except ValueError:
+                print("\n請輸入整數數字")
+                continue
 
             success = my_inv.update_stock(product_name, new_stock)
             if success:
