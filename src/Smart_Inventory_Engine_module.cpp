@@ -70,6 +70,20 @@ struct Inventory
         return nullptr;
     }
 
+    [[nodiscard]] std::vector<Product> find_products_by_name_contains(const std::string& keyword) const
+    {
+        std::vector<Product> result;
+
+        for (const Product& product : items)
+        {
+            if (product.name.find(keyword) != std::string::npos)
+            {
+                result.push_back(product);
+            }
+        }
+        return result;
+    }
+
     bool update_stock(const std::string& name, int new_stock)
     {
         Product* product = find_product_by_name(name);
@@ -121,5 +135,6 @@ PYBIND11_MODULE(Smart_Inventory_Engine_module, m)
         .def("update_stock", &Inventory::update_stock, py::arg("name"), py::arg("new_stock"))
         .def("remove_product", &Inventory::remove_product, py::arg("name"))
         .def("remove_all_products", &Inventory::remove_all_products, py::arg("name"))
+        .def("find_products_by_name_contains", &Inventory::find_products_by_name_contains, py::arg("keyword"))
         .def_readwrite("items", &Inventory::items);
 }
