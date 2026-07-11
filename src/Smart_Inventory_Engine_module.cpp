@@ -57,6 +57,48 @@ struct Inventory
             return a.price < b.price;
         });
     }
+
+    Product* find_product_by_name(const std::string& name)
+    {
+        for (Product& product : items)
+        {
+            if (product.name == name)
+            {
+                return &product;
+            }
+        }
+        return nullptr;
+    }
+
+    bool update_stock(const std::string& name, int new_stock)
+    {
+        Product* product = find_product_by_name(name);
+        if (product == nullptr)
+        {
+            return false;
+        }
+
+        product->stock = new_stock;
+        return true;
+    }
+
+    bool remove_product(const std::string& name)
+    {
+        auto it = std::find_if(items.begin(), items.end(),
+            [&name](const Product& p){return p.name == name;});
+        if (it == items.end())
+            return false;
+        items.erase(it);
+        return true;
+    }
+
+    size_t remove_all_products(const std::string& name)
+    {
+        auto old_size = items.size();
+        items.erase(std::remove_if(items.begin(), items.end(),
+            [&name](const Product& p){return p.name == name;}), items.end());
+        return old_size - items.size();
+    }
 };
 
 
@@ -75,5 +117,9 @@ PYBIND11_MODULE(Smart_Inventory_Engine_module, m)
         .def("calculate_total_value", &Inventory::calculate_total_value)
         .def("get_low_stock_items", &Inventory::get_low_stock_items)
         .def("sort_items_by_price", &Inventory::sort_items_by_price)
+        .def("find_product_by_name", &Inventory::find_product_by_name, py::return_value_policy::reference)
+        .def("update_stock", &Inventory::update_stock, py::arg("name"), py::arg("new_stock"))
+        .def("remove_product", &Inventory::remove_product, py::arg("name"))
+        .def("remove_all_products", &Inventory::remove_all_products, py::arg("name"))
         .def_readwrite("items", &Inventory::items);
 }
