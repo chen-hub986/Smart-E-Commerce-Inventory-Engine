@@ -104,7 +104,6 @@ def export_inventory_to_csv(inventory, filename='inventory.csv'):
 
         for product in inventory.items:
             # create a row that works for either header set
-            row = {}
             if LANG == 'en':
                 row = {
                     'Name': product.name,
