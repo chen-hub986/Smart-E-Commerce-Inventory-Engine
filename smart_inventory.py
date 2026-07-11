@@ -41,10 +41,13 @@ def main():
     while True:
         print("\n=== 智慧庫存系統 ===")
         print("1. 新增商品")
-        print("2. 查詢總資產")
-        print("3. 顯示缺貨商品")
-        print("4. 依價格排序商品")
-        print("0. 離開系統")
+        print("2. 刪除商品")
+        print("3. 尋找商品")
+        print("4. 更新商品庫存")
+        print("5. 查詢總資產")
+        print("6. 顯示缺貨商品")
+        print("7. 依價格排序商品")
+        print("0. 離開系統並儲存")
 
         choice = input("請輸入選項：")
 
@@ -71,8 +74,29 @@ def main():
                 print("\n請輸入數字!")
                 continue
         elif choice == '2':
-            print(f"\n總資產: {my_inv.calculate_total_value()}")
+            product_name = input("輸入名稱: ")
+            my_inv.remove_product(product_name)
         elif choice == '3':
+            product_name = input("輸入名稱: ")
+            found_product = my_inv.find_products_by_name_contains(product_name)
+            if found_product:
+                for product in found_product:
+                    print(f"\n商品名稱: {product.name} 價格: {product.price} 庫存: {product.stock} 警戒數值: {product.threshold}" )
+            else:
+                print("\n找不到該商品")
+        elif choice == '4':
+            product_name = input("輸入名稱: ")
+            new_stock = int(input("輸入新的庫存: "))
+
+            success = my_inv.update_stock(product_name, new_stock)
+            if success:
+                found_product = my_inv.find_product_by_name(product_name)
+                print(f"\n商品名稱: {found_product.name} 價格: {found_product.price} 庫存: {found_product.stock} 警戒數值: {found_product.threshold}")
+            else:
+                print("\n找不到該商品")
+        elif choice == '5':
+            print(f"\n總資產: {my_inv.calculate_total_value()}")
+        elif choice == '6':
             low_stock_products = my_inv.get_low_stock_items()
             if low_stock_products:
                 print(f"\n缺貨商品: ")
@@ -80,14 +104,13 @@ def main():
                     print(f"{p.name}: 目前庫存{p.stock} 警戒值: {p.threshold}")
             else:
                 print("\n目前沒有缺貨商品")
-        elif choice == '4':
+        elif choice == '7':
             my_inv.sort_items_by_price()
             if my_inv.items:
                 for item in my_inv.items:
                     print(f"\n商品名稱: {item.name} 價格: {item.price} 庫存: {item.stock}")
             else:
                 print("\n沒有商品")
-
         else:
             print("無效的選項，請重新輸入！")
             continue
