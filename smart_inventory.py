@@ -1,22 +1,128 @@
 import csv
 import os
+from typing import TypedDict, List, Dict
+
 import Smart_Inventory_Engine_module as sim
+
+# Language selection: 'zh' (default) or 'en'. Can be overridden with env var SIE_LANG
+LANG = os.environ.get('SIE_LANG', 'zh')
+
+
+class LangStrings(TypedDict):
+    menu_title: str
+    menu: List[str]
+    enter_choice: str
+    enter_name: str
+    enter_price: str
+    enter_stock: str
+    enter_threshold: str
+    invalid_number: str
+    please_name: str
+    not_found: str
+    removed: str
+    exit_save: str
+    no_items: str
+    found_results: str
+    low_stock_title: str
+    total_value: str
+
+
+STRINGS: Dict[str, LangStrings] = {
+    'zh': {
+        'menu_title': '=== 智慧庫存系統 ===',
+        'menu': [
+            '1. 新增商品',
+            '2. 刪除商品',
+            '3. 尋找商品',
+            '4. 更新商品庫存',
+            '5. 查詢總資產',
+            '6. 顯示缺貨商品',
+            '7. 依價格排序商品',
+            '0. 離開系統並儲存',
+        ],
+        'enter_choice': '請輸入選項：',
+        'enter_name': '輸入名稱: ',
+        'enter_price': '輸入價格: ',
+        'enter_stock': '輸入庫存: ',
+        'enter_threshold': '輸入警戒數值: ',
+        'invalid_number': '\n請輸入數字!',
+        'please_name': '\n請輸入商品名稱。',
+        'not_found': '\n找不到該商品',
+        'removed': '已刪除商品: {}',
+        'exit_save': '系統已關閉',
+        'no_items': '\n沒有商品',
+        'found_results': '\n找到 {} 筆結果：',
+        'low_stock_title': '\n缺貨商品: ',
+        'total_value': '\n總資產: {}',
+    },
+    'en': {
+        'menu_title': '=== Smart Inventory System ===',
+        'menu': [
+            '1. Add product',
+            '2. Remove product',
+            '3. Search products',
+            '4. Update product stock',
+            '5. Show total value',
+            '6. Show low-stock items',
+            '7. Sort items by price',
+            '0. Exit and save',
+        ],
+        'enter_choice': 'Enter choice: ',
+        'enter_name': 'Enter name: ',
+        'enter_price': 'Enter price: ',
+        'enter_stock': 'Enter stock: ',
+        'enter_threshold': 'Enter threshold: ',
+        'invalid_number': '\nPlease enter numeric values for price/stock/threshold',
+        'please_name': '\nPlease provide a product name.',
+        'not_found': '\nProduct not found',
+        'removed': 'Removed product: {}',
+        'exit_save': 'Exiting. Saving inventory to CSV...',
+        'no_items': '\nNo items',
+        'found_results': '\nFound {} result(s):',
+        'low_stock_title': '\nLow-stock items:',
+        'total_value': '\nTotal value: {}',
+    }
+}
+
+CSV_HEADERS: Dict[str, List[str]] = {
+    'zh': ['商品名稱', '價格', '庫存', '警戒數值', '總價值'],
+    'en': ['Name', 'Price', 'Stock', 'Threshold', 'TotalValue'],
+}
+
+# normalize LANG
+if LANG not in STRINGS:
+    LANG = 'zh'
+T: LangStrings = STRINGS[LANG]
 
 
 def export_inventory_to_csv(inventory, filename='inventory.csv'):
+    # choose headers by LANG; default behavior remains Chinese for backward compatibility
+    headers = CSV_HEADERS.get(LANG, CSV_HEADERS['zh'])
     with open(filename, 'w', newline='', encoding='utf-8-sig') as csvfile:
-        fieldnames = ['商品名稱', '價格', '庫存', '警戒數值', '總價值']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer = csv.DictWriter(csvfile, fieldnames=headers)
         writer.writeheader()
 
         for product in inventory.items:
-            writer.writerow({
-                '商品名稱': product.name,
-                '價格': product.price,
-                '庫存': product.stock,
-                '警戒數值': product.threshold,
-                '總價值': product.price * product.stock
-            })
+            # create a row that works for either header set
+            row = {}
+            if LANG == 'en':
+                row = {
+                    'Name': product.name,
+                    'Price': product.price,
+                    'Stock': product.stock,
+                    'Threshold': product.threshold,
+                    'TotalValue': product.price * product.stock,
+                }
+            else:
+                row = {
+                    '商品名稱': product.name,
+                    '價格': product.price,
+                    '庫存': product.stock,
+                    '警戒數值': product.threshold,
+                    '總價值': product.price * product.stock,
+                }
+
+            writer.writerow(row)
 
 def import_inventory_from_csv(inventory, filename='inventory.csv'):
     if not os.path.exists(filename):
@@ -28,10 +134,15 @@ def import_inventory_from_csv(inventory, filename='inventory.csv'):
         for row in reader:
             row_no += 1
             try:
-                name = row.get('商品名稱', '').strip()
-                price = int(row.get('價格', 0))
-                stock = int(row.get('庫存', 0))
-                threshold = int(row.get('警戒數值', 0))
+                # support both English and Chinese headers
+                name = (row.get('Name') or row.get('商品名稱') or '').strip()
+                price_raw = row.get('Price') or row.get('價格') or '0'
+                stock_raw = row.get('Stock') or row.get('庫存') or '0'
+                threshold_raw = row.get('Threshold') or row.get('警戒數值') or '0'
+
+                price = int(float(str(price_raw).replace(',', '').strip()))
+                stock = int(float(str(stock_raw).replace(',', '').strip()))
+                threshold = int(float(str(threshold_raw).replace(',', '').strip()))
             except (ValueError, TypeError) as e:
                 print(f"Warning: skip invalid row {row_no} in CSV: {e}")
                 continue
@@ -47,32 +158,25 @@ def import_inventory_from_csv(inventory, filename='inventory.csv'):
 def main():
     my_inv = sim.Inventory()
     import_inventory_from_csv(my_inv)
-
     while True:
-        print("\n=== 智慧庫存系統 ===")
-        print("1. 新增商品")
-        print("2. 刪除商品")
-        print("3. 尋找商品")
-        print("4. 更新商品庫存")
-        print("5. 查詢總資產")
-        print("6. 顯示缺貨商品")
-        print("7. 依價格排序商品")
-        print("0. 離開系統並儲存")
+        print("\n" + T['menu_title'])
+        for line in T['menu']:
+            print(line)
 
-        choice = input("請輸入選項：")
+        choice = input(T['enter_choice'])
 
         if choice == '0':
-            print("系統已關閉")
+            print(T['exit_save'])
             export_inventory_to_csv(my_inv)
             break
 
         if choice == '1':
             try:
                 product = sim.Product()
-                product_name = str(input("輸入名稱: "))
-                product_price = int(input("輸入價格: "))
-                product_stock = int(input("輸入庫存: "))
-                product_threshold = int(input("輸入警戒數值: "))
+                product_name = str(input(T['enter_name']))
+                product_price = int(input(T['enter_price']))
+                product_stock = int(input(T['enter_stock']))
+                product_threshold = int(input(T['enter_threshold']))
 
                 product.name = product_name
                 product.price = product_price
@@ -81,39 +185,39 @@ def main():
 
                 my_inv.add_product(product)
             except ValueError:
-                print("\n請輸入數字!")
+                print(T['invalid_number'])
                 continue
         elif choice == '2':
-            product_name = input("輸入名稱: ").strip()
+            product_name = input(T['enter_name']).strip()
             if not product_name:
-                print("\n請輸入商品名稱。")
+                print(T['please_name'])
                 continue
             ok = my_inv.remove_product(product_name)
             if ok:
-                print(f"已刪除商品: {product_name}")
+                print(T['removed'].format(product_name))
             else:
-                print(f"找不到商品: {product_name}")
+                print(T['not_found'])
         elif choice == '3':
-            product_name = input("輸入名稱: ").strip()
+            product_name = input(T['enter_name']).strip()
             if not product_name:
-                print("\n請輸入搜尋關鍵字。")
+                print(T['please_name'])
                 continue
             found_product = my_inv.find_products_by_name_contains(product_name)
             if found_product:
-                print(f"\n找到 {len(found_product)} 筆結果：")
+                print(T['found_results'].format(len(found_product)))
                 for products in found_product:
-                    print(f"\n商品名稱: {products.name} 價格: {products.price} 庫存: {products.stock} 警戒數值: {products.threshold}" )
+                    print(f"\n商品名稱: {products.name} 價格: {products.price} 庫存: {products.stock} 警戒數值: {products.threshold}")
             else:
-                print("\n找不到該商品")
+                print(T['not_found'])
         elif choice == '4':
             try:
-                product_name = input("輸入名稱: ").strip()
+                product_name = input(T['enter_name']).strip()
                 if not product_name:
-                    print("\n請輸入商品名稱。")
+                    print(T['please_name'])
                     continue
-                new_stock = int(input("輸入新的庫存: ").strip())
+                new_stock = int(input(T['enter_stock']).strip())
             except ValueError:
-                print("\n請輸入整數數字")
+                print(T['invalid_number'])
                 continue
 
             success = my_inv.update_stock(product_name, new_stock)
@@ -121,13 +225,13 @@ def main():
                 found_product = my_inv.find_product_by_name(product_name)
                 print(f"\n商品名稱: {found_product.name} 價格: {found_product.price} 庫存: {found_product.stock} 警戒數值: {found_product.threshold}")
             else:
-                print("\n找不到該商品")
+                print(T['not_found'])
         elif choice == '5':
-            print(f"\n總資產: {my_inv.calculate_total_value()}")
+            print(T['total_value'].format(my_inv.calculate_total_value()))
         elif choice == '6':
             low_stock_products = my_inv.get_low_stock_items()
             if low_stock_products:
-                print(f"\n缺貨商品: ")
+                print(T['low_stock_title'])
                 for p in low_stock_products:
                     print(f"{p.name}: 目前庫存{p.stock} 警戒值: {p.threshold}")
             else:
@@ -138,8 +242,9 @@ def main():
                 for item in my_inv.items:
                     print(f"\n商品名稱: {item.name} 價格: {item.price} 庫存: {item.stock}")
             else:
-                print("\n沒有商品")
+                print(T['no_items'])
         else:
+            # keep Chinese message here for compatibility in original file, but also show generic
             print("無效的選項，請重新輸入！")
             continue
 
